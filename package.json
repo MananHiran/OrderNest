@@ -8,6 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "seed": "tsx prisma/seed.ts",
+    "seed-mo": "tsx prisma/seed-mo.ts",
+    "add-sample-mo": "tsx prisma/add-sample-mo.ts",
     "cleanup": "tsx prisma/cleanup.ts",
     "verify": "tsx prisma/verify.ts",
     "delete-user": "tsx prisma/delete-user.ts"

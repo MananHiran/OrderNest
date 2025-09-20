@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Factory, Loader2, RefreshCw, Plus } from "lucide-react";
+import { Factory, Loader2, RefreshCw, Plus, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 interface ManufacturingOrder {
   mo_id: string;
@@ -148,6 +149,16 @@ export default function DashboardPage() {
               )}
               <span>Refresh</span>
             </Button>
+            <Link href="/manufacturing-orders">
+              <Button
+                variant="outline"
+                size="default"
+                className="flex items-center space-x-2"
+              >
+                <span>View All Orders</span>
+                <ArrowRight className="w-4 h-4" />
+              </Button>
+            </Link>
             <Button
               variant="default"
               size="default"
