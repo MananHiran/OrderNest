@@ -19,11 +19,24 @@ export async function GET() {
       }
     });
 
+    // Get work center data separately to include names
+    const workCenterIds = [...new Set(workOrders.map(wo => wo.work_center_id))];
+    const workCenters = await prisma.workCenter.findMany({
+      where: {
+        work_center_id: {
+          in: workCenterIds
+        }
+      }
+    });
+
+    // Create a map for quick lookup
+    const workCenterMap = new Map(workCenters.map(wc => [wc.work_center_id, wc.name]));
+
     // Transform data for frontend
     const transformedWorkOrders = workOrders.map(workOrder => ({
       id: workOrder.wo_id,
       operation: workOrder.operation_name,
-      workCenter: workOrder.work_center_id, // We'll need to join with work_centers table later
+      workCenter: workCenterMap.get(workOrder.work_center_id) || 'Unknown Work Center',
       productName: workOrder.manufacturing_order.product.product_name,
       plannedTime: workOrder.planned_time ? (workOrder.planned_time / 60).toFixed(2) : '0.00', // Convert minutes to hours
       actualTime: workOrder.actual_time ? (workOrder.actual_time / 60).toFixed(2) : '0.00', // Convert minutes to hours

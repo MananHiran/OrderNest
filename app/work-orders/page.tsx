@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Wrench, Plus, Search, Filter, Package, Clock, MapPin, CheckCircle, AlertCircle, XCircle, Play } from 'lucide-react';
+import { Wrench, Plus, Search, Filter, Package, Clock, MapPin, CheckCircle, AlertCircle, XCircle, Play, ChevronDown, SortAsc, SortDesc } from 'lucide-react';
 
 interface WorkOrder {
   id: string;
@@ -22,6 +22,8 @@ export default function WorkOrdersPage() {
   const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showAdvancedFilter, setShowAdvancedFilter] = useState(false);
+  const [sortBy, setSortBy] = useState<'none' | 'productName-asc' | 'productName-desc'>('none');
 
   // Fetch work orders from API
   useEffect(() => {
@@ -46,6 +48,21 @@ export default function WorkOrdersPage() {
 
     fetchWorkOrders();
   }, []);
+
+  // Close advanced filter dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (showAdvancedFilter && !target.closest('.relative')) {
+        setShowAdvancedFilter(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showAdvancedFilter]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -78,14 +95,23 @@ export default function WorkOrdersPage() {
     }
   };
 
-  const filteredWorkOrders = workOrders.filter(order => {
-    const matchesSearch = order.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         order.operation.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         order.workCenter.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         order.assignedTo.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFilter = filterStatus === 'all' || order.status === filterStatus;
-    return matchesSearch && matchesFilter;
-  });
+  const filteredWorkOrders = workOrders
+    .filter(order => {
+      const matchesSearch = order.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           order.operation.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           order.workCenter.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           order.assignedTo.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesFilter = filterStatus === 'all' || order.status === filterStatus;
+      return matchesSearch && matchesFilter;
+    })
+    .sort((a, b) => {
+      if (sortBy === 'productName-asc') {
+        return a.productName.localeCompare(b.productName);
+      } else if (sortBy === 'productName-desc') {
+        return b.productName.localeCompare(a.productName);
+      }
+      return 0; // No sorting for 'none'
+    });
 
   const statusCounts = {
     all: workOrders.length,
@@ -162,10 +188,72 @@ export default function WorkOrdersPage() {
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
-          <button className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-            <Filter className="w-4 h-4" />
-            <span>Advanced Filter</span>
-          </button>
+          <div className="relative">
+            <button 
+              onClick={() => setShowAdvancedFilter(!showAdvancedFilter)}
+              className="flex items-center space-x-2 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              <Filter className="w-4 h-4" />
+              <span>Advanced Filter</span>
+              <ChevronDown className={`w-4 h-4 transition-transform ${showAdvancedFilter ? 'rotate-180' : ''}`} />
+            </button>
+            
+            {showAdvancedFilter && (
+              <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
+                <div className="p-4">
+                  <h3 className="text-sm font-medium text-gray-900 mb-3">Sort Options</h3>
+                  <div className="space-y-2">
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        name="sort"
+                        value="none"
+                        checked={sortBy === 'none'}
+                        onChange={(e) => setSortBy(e.target.value as any)}
+                        className="mr-2"
+                      />
+                      <span className="text-sm text-gray-700">Default Order</span>
+                    </label>
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        name="sort"
+                        value="productName-asc"
+                        checked={sortBy === 'productName-asc'}
+                        onChange={(e) => setSortBy(e.target.value as any)}
+                        className="mr-2"
+                      />
+                      <SortAsc className="w-4 h-4 mr-1" />
+                      <span className="text-sm text-gray-700">Product Name (A-Z)</span>
+                    </label>
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        name="sort"
+                        value="productName-desc"
+                        checked={sortBy === 'productName-desc'}
+                        onChange={(e) => setSortBy(e.target.value as any)}
+                        className="mr-2"
+                      />
+                      <SortDesc className="w-4 h-4 mr-1" />
+                      <span className="text-sm text-gray-700">Product Name (Z-A)</span>
+                    </label>
+                  </div>
+                  <div className="mt-4 pt-3 border-t border-gray-200">
+                    <button
+                      onClick={() => {
+                        setSortBy('none');
+                        setShowAdvancedFilter(false);
+                      }}
+                      className="w-full px-3 py-2 text-sm text-gray-600 hover:text-gray-800 hover:bg-gray-50 rounded transition-colors"
+                    >
+                      Clear Filters
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
           <button className="flex items-center space-x-2 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors">
             <Plus className="w-4 h-4" />
             <span>New Work Order</span>
