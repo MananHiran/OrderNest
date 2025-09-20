@@ -1,0 +1,243 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+// Enums
+enum UserRole {
+  USER
+  INVENTORY_MANAGER
+  OPERATOR_MANAGER
+  MANUFACTURER_MANAGER
+  ADMIN  
+}
+
+enum ProductType {
+  RAW_MATERIAL
+  FINISHED_GOOD
+  SEMI_FINISHED
+}
+
+enum ManufacturingOrderStatus {
+  DRAFT
+  CONFIRMED
+  IN_PROGRESS
+  TO_CLOSE
+  DONE
+}
+
+enum WorkOrderStatus {
+  NOT_STARTED
+  STARTED
+  PAUSED
+  COMPLETED
+}
+
+enum MovementType {
+  IN
+  OUT
+}
+
+enum ReferenceType {
+  MO
+  WO
+  MANUAL_ADJUSTMENT
+}
+
+enum ReportType {
+  USER_ACTIVITY
+  PRODUCTION_SUMMARY
+  INVENTORY_SUMMARY
+}
+
+enum UnitType{
+  PCS
+  KG
+  LTR
+  MT
+}
+enum ComponentState{
+  Avaliable
+  Not_Avaliable
+}
+
+// 1. Users Table
+model User {
+  user_id         String   @id @default(cuid())
+  name            String
+  email           String   @unique
+  password_hash   String
+  role            UserRole @default(USER)
+  phone           String?
+  profile_picture String?
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  // Relations
+  created_mos     ManufacturingOrder[] @relation("CreatedByUser")
+  assigned_mos    ManufacturingOrder[] @relation("AssignedToUser")
+  assigned_wos    WorkOrder[]          @relation("AssignedToUser")
+  stock_ledgers   StockLedger[]
+  reports         Report[]
+  audit_logs      AuditLog[]
+
+  @@map("users")
+}
+
+// 2. Products Table
+model Product {
+  product_id       String      @id @default(cuid())
+  product_name     String
+  type             ProductType
+  unit_of_measure  UnitType
+  current_stock    Float       @default(0)
+  cost_per_unit    Float
+  created_at       DateTime    @default(now())
+  updated_at       DateTime    @updatedAt
+
+  // Relations
+  boms_as_product   BOM[]              @relation("ProductBOM")
+  boms_as_component BOM[]              @relation("ComponentBOM")
+  manufacturing_orders ManufacturingOrder[]
+  stock_ledgers     StockLedger[]
+
+  @@map("products")
+}
+
+// 3. BOM (Bill of Materials) Table
+model BOM {
+  bom_id             String   @id @default(cuid())
+  product_id         String
+  component_id       String
+  quantity_required  Float
+  operation_sequence String   // JSON string for step order (e.g., "[1,2,3]")
+  created_at         DateTime @default(now())
+
+  // Relations
+  product   Product @relation("ProductBOM", fields: [product_id], references: [product_id], onDelete: Cascade)
+  component Product @relation("ComponentBOM", fields: [component_id], references: [product_id], onDelete: Cascade)
+
+  @@map("bom")
+}
+
+// 4. Manufacturing Orders (MO) Table
+model ManufacturingOrder {
+  mo_id           String                    @id @default("mo_")
+  product_id      String
+  quantity        Float
+  state           ComponentState @default(Not_Avaliable)
+  status          ManufacturingOrderStatus @default(DRAFT)
+  scheduled_start DateTime?
+  scheduled_end   DateTime?
+  actual_start    DateTime?
+  actual_end      DateTime?
+  created_by      String
+  assigned_to     String?
+  created_at      DateTime                 @default(now())
+  updated_at      DateTime                 @updatedAt
+
+  // Relations
+  product      Product     @relation(fields: [product_id], references: [product_id], onDelete: Cascade)
+  creator      User        @relation("CreatedByUser", fields: [created_by], references: [user_id])
+  assignee     User?       @relation("AssignedToUser", fields: [assigned_to], references: [user_id])
+  work_orders  WorkOrder[]
+  stock_ledgers StockLedger[]
+
+  @@map("manufacturing_orders")
+}
+
+// 5. Work Orders (WO) Table
+model WorkOrder {
+  wo_id           String          @id @default("wo_")
+  mo_id           String
+  operation_name  String
+  work_center_id  String
+  assigned_to     String?
+  status          WorkOrderStatus @default(NOT_STARTED)
+  comments        String?
+  planned_time    Int? // in minutes
+  actual_time     Int? // in minutes
+  started_at      DateTime?
+  completed_at    DateTime?
+
+  // Relations
+  manufacturing_order ManufacturingOrder @relation(fields: [mo_id], references: [mo_id], onDelete: Cascade)
+  work_center        WorkCenter         @relation(fields: [work_center_id], references: [work_center_id])
+  assignee           User?              @relation("AssignedToUser", fields: [assigned_to], references: [user_id])
+  stock_ledgers      StockLedger[]
+
+  @@map("work_orders")
+}
+
+// 6. Work Centers Table
+model WorkCenter {
+  work_center_id String   @id @default(cuid())
+  name           String
+  cost_per_hour  Float
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+
+  // Relations
+  work_orders WorkOrder[]
+
+  @@map("work_centers")
+}
+
+// 7. Stock Ledger Table
+model StockLedger {
+  ledger_id      String        @id @default(cuid())
+  product_id     String
+  movement_type  MovementType
+  quantity       Float
+  reference_type ReferenceType
+  reference_id   String
+  created_at     DateTime      @default(now())
+  created_by     String
+
+  // Relations
+  product              Product             @relation(fields: [product_id], references: [product_id], onDelete: Cascade)
+  creator              User                @relation(fields: [created_by], references: [user_id])
+  manufacturing_order  ManufacturingOrder? @relation(fields: [reference_id], references: [mo_id])
+  work_order           WorkOrder?          @relation(fields: [reference_id], references: [wo_id])
+
+  @@map("stock_ledger")
+}
+
+// 8. Reports Table
+model Report {
+  report_id    String     @id @default(cuid())
+  user_id      String
+  report_type  ReportType
+  data         Json // JSON field for flexibility
+  generated_at DateTime   @default(now())
+
+  // Relations
+  user User @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+
+  @@map("reports")
+}
+
+// 9. Audit Logs Table
+model AuditLog {
+  log_id    String   @id @default(cuid())
+  user_id   String
+  action    String
+  timestamp DateTime @default(now())
+  details   Json? // JSON field for additional details
+
+  // Relations
+  user User @relation(fields: [user_id], references: [user_id], onDelete: Cascade)
+
+  @@map("audit_logs")
+}
