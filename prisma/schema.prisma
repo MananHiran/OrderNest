@@ -149,6 +149,7 @@ model ComponentConsumption {
   product_id         String   // Product ID (foreign key)
   product_name       String   // Product Name (denormalized for performance)
   consumption_quantity Float
+  flag               Boolean  @default(true) //Component Availability
   created_at         DateTime @default(now())
   updated_at         DateTime @updatedAt
 
