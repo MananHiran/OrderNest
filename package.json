@@ -9,7 +9,8 @@
     "lint": "eslint",
     "seed": "tsx prisma/seed.ts",
     "cleanup": "tsx prisma/cleanup.ts",
-    "verify": "tsx prisma/verify.ts"
+    "verify": "tsx prisma/verify.ts",
+    "delete-user": "tsx prisma/delete-user.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
