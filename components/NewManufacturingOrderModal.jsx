@@ -4,6 +4,7 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Plus, Trash2, Calendar, User, Package } from 'lucide-react';
 
 export function NewManufacturingOrderModal({ isOpen, onClose, onSubmit }) {
@@ -22,14 +23,17 @@ export function NewManufacturingOrderModal({ isOpen, onClose, onSubmit }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [products, setProducts] = useState([]);
   const [rawMaterials, setRawMaterials] = useState([]);
+  const [operatorManagers, setOperatorManagers] = useState([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [loadingRawMaterials, setLoadingRawMaterials] = useState(false);
+  const [loadingOperatorManagers, setLoadingOperatorManagers] = useState(false);
 
   // Fetch products when modal opens
   useEffect(() => {
     if (isOpen) {
       fetchProducts();
       fetchRawMaterials();
+      fetchOperatorManagers();
       setFormData({
         product_id: '',
         product_name: '',
@@ -75,6 +79,23 @@ export function NewManufacturingOrderModal({ isOpen, onClose, onSubmit }) {
       console.error('Error fetching raw materials:', error);
     } finally {
       setLoadingRawMaterials(false);
+    }
+  };
+
+  const fetchOperatorManagers = async () => {
+    try {
+      setLoadingOperatorManagers(true);
+      const response = await fetch('/api/users?role=OPERATOR_MANAGER');
+      if (response.ok) {
+        const data = await response.json();
+        setOperatorManagers(data);
+      } else {
+        console.error('Failed to fetch operator managers');
+      }
+    } catch (error) {
+      console.error('Error fetching operator managers:', error);
+    } finally {
+      setLoadingOperatorManagers(false);
     }
   };
 
@@ -324,12 +345,26 @@ export function NewManufacturingOrderModal({ isOpen, onClose, onSubmit }) {
           <CardContent>
             <div>
               <Label htmlFor="assigned_to">Assigned To</Label>
-              <Input
-                id="assigned_to"
+              <Select
                 value={formData.assigned_to}
-                onChange={(e) => handleInputChange('assigned_to', e.target.value)}
-                placeholder="Enter assignee name or ID"
-              />
+                onValueChange={(value) => handleInputChange('assigned_to', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={loadingOperatorManagers ? "Loading..." : "Select an operator manager"} />
+                </SelectTrigger>
+                <SelectContent>
+                  {operatorManagers.map((manager) => (
+                    <SelectItem key={manager.user_id} value={manager.user_id}>
+                      {manager.name} ({manager.email})
+                    </SelectItem>
+                  ))}
+                  {operatorManagers.length === 0 && !loadingOperatorManagers && (
+                    <SelectItem value="" disabled>
+                      No operator managers found
+                    </SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
             </div>
           </CardContent>
         </Card>

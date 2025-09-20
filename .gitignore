@@ -36,9 +36,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# Database
-*.db
-*.db-journal
+# # Database
+# *.db
+# *.db-journal
 
 # IDE
 .vscode/

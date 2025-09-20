@@ -4,12 +4,14 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Eye, EyeOff, User, Mail, Lock, ArrowRight } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function RegisterPage() {
+  const router = useRouter();
   const [formData, setFormData] = useState({
     username: "",
     email: "",
@@ -73,8 +75,6 @@ export default function RegisterPage() {
       if (response.ok) {
         // Registration successful
         console.log('Registration successful:', data);
-        // You can redirect to login page or show success message
-        alert('Registration successful! You can now log in.');
         // Reset form
         setFormData({
           username: "",
@@ -83,6 +83,8 @@ export default function RegisterPage() {
           confirmPassword: "",
         });
         setErrors({});
+        // Redirect to login page
+        router.push('/login');
       } else {
         // Registration failed
         setErrors({ submit: data.error || 'Registration failed' });

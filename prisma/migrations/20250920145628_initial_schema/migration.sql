@@ -4,7 +4,7 @@ CREATE TABLE "users" (
     "name" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "password_hash" TEXT NOT NULL,
-    "role" TEXT NOT NULL,
+    "role" TEXT NOT NULL DEFAULT 'USER',
     "phone" TEXT,
     "profile_picture" TEXT,
     "created_at" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -27,19 +27,26 @@ CREATE TABLE "products" (
 CREATE TABLE "bom" (
     "bom_id" TEXT NOT NULL PRIMARY KEY,
     "product_id" TEXT NOT NULL,
+    "created_at" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "bom_product_id_fkey" FOREIGN KEY ("product_id") REFERENCES "products" ("product_id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE "bom_components" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "bom_id" TEXT NOT NULL,
     "component_id" TEXT NOT NULL,
     "quantity_required" REAL NOT NULL,
-    "operation_sequence" TEXT NOT NULL,
-    "created_at" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT "bom_product_id_fkey" FOREIGN KEY ("product_id") REFERENCES "products" ("product_id") ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT "bom_component_id_fkey" FOREIGN KEY ("component_id") REFERENCES "products" ("product_id") ON DELETE CASCADE ON UPDATE CASCADE
+    CONSTRAINT "bom_components_bom_id_fkey" FOREIGN KEY ("bom_id") REFERENCES "bom" ("bom_id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "bom_components_component_id_fkey" FOREIGN KEY ("component_id") REFERENCES "products" ("product_id") ON DELETE RESTRICT ON UPDATE CASCADE
 );
 
 -- CreateTable
 CREATE TABLE "manufacturing_orders" (
-    "mo_id" TEXT NOT NULL PRIMARY KEY DEFAULT 'mo_',
+    "mo_id" TEXT NOT NULL PRIMARY KEY,
     "product_id" TEXT NOT NULL,
     "quantity" REAL NOT NULL,
+    "state" TEXT NOT NULL DEFAULT 'Not_Avaliable',
     "status" TEXT NOT NULL DEFAULT 'DRAFT',
     "scheduled_start" DATETIME,
     "scheduled_end" DATETIME,

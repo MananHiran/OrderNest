@@ -178,21 +178,33 @@ async function main() {
 
   // Create BOM entries
   console.log('📋 Creating BOM entries...');
-  await prisma.bOM.create({
+  const steelBoltBOM = await prisma.bOM.create({
     data: {
-      product_id: steelBolt.product_id,
-      component_id: steelRod.product_id,
-      quantity_required: 0.1,
-      operation_sequence: JSON.stringify([1, 2, 3])
+      product_id: steelBolt.product_id
     }
   });
 
-  await prisma.bOM.create({
+  const aluminumPlateBOM = await prisma.bOM.create({
     data: {
-      product_id: aluminumPlate.product_id,
+      product_id: aluminumPlate.product_id
+    }
+  });
+
+  // Create BOM Components
+  console.log('📋 Creating BOM components...');
+  await prisma.bOMComponent.create({
+    data: {
+      bom_id: steelBoltBOM.bom_id,
+      component_id: steelRod.product_id,
+      quantity_required: 0.1
+    }
+  });
+
+  await prisma.bOMComponent.create({
+    data: {
+      bom_id: aluminumPlateBOM.bom_id,
       component_id: paintCoating.product_id,
-      quantity_required: 0.05,
-      operation_sequence: JSON.stringify([1, 2])
+      quantity_required: 0.05
     }
   });
 
