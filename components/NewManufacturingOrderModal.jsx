@@ -19,6 +19,8 @@ export function NewManufacturingOrderModal({ isOpen, onClose, onSubmit }) {
     bill_of_materials: []
   });
 
+  const [productBOMComponents, setProductBOMComponents] = useState([]);
+
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [products, setProducts] = useState([]);
@@ -44,6 +46,7 @@ export function NewManufacturingOrderModal({ isOpen, onClose, onSubmit }) {
         assigned_to: '',
         bill_of_materials: []
       });
+      setProductBOMComponents([]);
       setErrors({});
     }
   }, [isOpen]);
@@ -116,6 +119,24 @@ export function NewManufacturingOrderModal({ isOpen, onClose, onSubmit }) {
         product_name: selectedProduct.product_name,
         unit_of_measure: selectedProduct.unit_of_measure
       }));
+
+      // Extract BOM components from the selected product
+      const bomComponents = [];
+      if (selectedProduct.boms_as_product && selectedProduct.boms_as_product.length > 0) {
+        const bom = selectedProduct.boms_as_product[0]; // Get the first BOM
+        if (bom.components && bom.components.length > 0) {
+          bom.components.forEach(bomComponent => {
+            bomComponents.push({
+              component_id: bomComponent.component.product_id,
+              component_name: bomComponent.component.product_name,
+              quantity_required: bomComponent.quantity_required,
+              unit: bomComponent.component.unit_of_measure
+            });
+          });
+        }
+      }
+      setProductBOMComponents(bomComponents);
+
       // Clear product-related errors
       if (errors.product_id || errors.product_name) {
         setErrors(prev => ({ ...prev, product_id: '', product_name: '' }));
@@ -369,11 +390,58 @@ export function NewManufacturingOrderModal({ isOpen, onClose, onSubmit }) {
           </CardContent>
         </Card>
 
-        {/* Bill of Materials */}
+        {/* BOM Components from Product */}
+        {productBOMComponents.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Package className="w-5 h-5" />
+                <span>BOM Components</span>
+              </CardTitle>
+              <p className="text-sm text-gray-600 mt-1">
+                Components required for the selected product (from BOM)
+              </p>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {productBOMComponents.map((component, index) => (
+                  <div key={index} className="flex items-center space-x-3 p-3 border rounded-lg bg-blue-50">
+                    <div className="flex-1 grid grid-cols-3 gap-3">
+                      <div>
+                        <Input
+                          value={component.component_name}
+                          readOnly
+                          className="bg-white cursor-not-allowed"
+                          placeholder="Component Name"
+                        />
+                      </div>
+                      <div>
+                        <Input
+                          value={component.quantity_required}
+                          readOnly
+                          className="bg-white cursor-not-allowed"
+                          placeholder="Quantity"
+                        />
+                      </div>
+                      <Input
+                        value={component.unit}
+                        readOnly
+                        className="bg-white cursor-not-allowed"
+                        placeholder="Unit"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Additional Components */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
-              <span>Bill of Materials</span>
+              <span>Additional Components</span>
               <Button
                 type="button"
                 variant="outline"
@@ -385,11 +453,14 @@ export function NewManufacturingOrderModal({ isOpen, onClose, onSubmit }) {
                 <span>Add Component</span>
               </Button>
             </CardTitle>
+            <p className="text-sm text-gray-600 mt-1">
+              Add extra components not included in the standard BOM
+            </p>
           </CardHeader>
           <CardContent>
             {formData.bill_of_materials.length === 0 ? (
               <p className="text-gray-500 text-center py-4">
-                No components added yet. Click "Add Component" to add BOM items.
+                No additional components added yet. Click "Add Component" to add extra BOM items.
               </p>
             ) : (
               <div className="space-y-3">

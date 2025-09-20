@@ -8,6 +8,25 @@ export async function GET(request: NextRequest) {
 
     const whereClause = type ? { type } : {};
 
+    // Include BOM components for finished goods
+    const includeClause = type === 'FINISHED_GOOD' ? {
+      boms_as_product: {
+        include: {
+          components: {
+            include: {
+              component: {
+                select: {
+                  product_id: true,
+                  product_name: true,
+                  unit_of_measure: true
+                }
+              }
+            }
+          }
+        }
+      }
+    } : {};
+
     const products = await prisma.product.findMany({
       where: whereClause,
       select: {
@@ -16,7 +35,8 @@ export async function GET(request: NextRequest) {
         type: true,
         unit_of_measure: true,
         current_stock: true,
-        cost_per_unit: true
+        cost_per_unit: true,
+        ...includeClause
       },
       orderBy: {
         product_name: 'asc'
