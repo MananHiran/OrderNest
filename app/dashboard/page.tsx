@@ -34,6 +34,7 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [filterStatus, setFilterStatus] = useState('all');
 
   const fetchManufacturingOrders = async () => {
     try {
@@ -165,6 +166,14 @@ export default function DashboardPage() {
     }
   };
 
+  // Filter manufacturing orders based on selected status
+  const filteredManufacturingOrders = manufacturingOrders.filter(order => {
+    if (filterStatus === 'all') return true;
+    const orderStatus = order.status.toLowerCase().replace('_', ' ');
+    const filterStatusLower = filterStatus.toLowerCase();
+    return orderStatus === filterStatusLower;
+  });
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header with Logo */}
@@ -253,6 +262,44 @@ export default function DashboardPage() {
           </div>
         </motion.div>
 
+        {/* Status Filter Tabs */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="mb-6"
+        >
+          <div className="flex space-x-1 mb-6 bg-gray-100 p-1 rounded-lg w-fit">
+            {['all', 'Draft', 'Confirmed', 'Available', 'In Progress', 'To Close', 'Done'].map((status) => (
+              <button
+                key={status}
+                onClick={() => setFilterStatus(status)}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  filterStatus === status
+                    ? 'bg-white text-black shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                {status === 'all' ? 'All Orders' : status}
+                {status !== 'all' && (
+                  <span className="ml-2 text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full">
+                    {manufacturingOrders.filter(order => {
+                      const orderStatus = order.status.toLowerCase().replace('_', ' ');
+                      const filterStatusLower = status.toLowerCase();
+                      return orderStatus === filterStatusLower;
+                    }).length}
+                  </span>
+                )}
+                {status === 'all' && (
+                  <span className="ml-2 text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full">
+                    {manufacturingOrders.length}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        </motion.div>
+
         {/* Manufacturing Orders Table */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -284,14 +331,26 @@ export default function DashboardPage() {
                 </Button>
               </div>
             </div>
-          ) : manufacturingOrders.length === 0 ? (
+          ) : filteredManufacturingOrders.length === 0 ? (
             <div className="flex items-center justify-center py-12">
-              <div className="text-center">
-                <Factory className="w-8 h-8 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600 mb-4">No manufacturing orders found</p>
-                <p className="text-sm text-gray-500">Create your first manufacturing order to get started</p>
+                <div className="text-center">
+                  <Factory className="w-8 h-8 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600 mb-4">
+                    {manufacturingOrders.length === 0 
+                      ? 'No manufacturing orders found' 
+                      : `No orders found with status: ${filterStatus}`
+                    }
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    {manufacturingOrders.length === 0 
+                      ? 'Create your first manufacturing order to get started'
+                      : filterStatus !== 'all' 
+                        ? 'Try selecting a different status filter'
+                        : 'Create your first manufacturing order to get started'
+                    }
+                  </p>
+                </div>
               </div>
-            </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200">
@@ -321,7 +380,7 @@ export default function DashboardPage() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {manufacturingOrders.map((order, index) => (
+                  {filteredManufacturingOrders.map((order, index) => (
                     <motion.tr
                       key={order.mo_id}
                       initial={{ opacity: 0, x: -20 }}

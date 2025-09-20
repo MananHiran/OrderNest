@@ -1,147 +1,98 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Wrench, Plus, Search, Filter, Package, Clock, MapPin, CheckCircle, AlertCircle, XCircle, Play } from 'lucide-react';
+
+interface WorkOrder {
+  id: string;
+  operation: string;
+  workCenter: string;
+  productName: string;
+  plannedTime: string;
+  actualTime: string;
+  status: string;
+  startDate: string | null;
+  assignedTo: string;
+  moId: string;
+}
 
 export default function WorkOrdersPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [workOrders, setWorkOrders] = useState<WorkOrder[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Sample work order data
-  const [workOrders] = useState([
-    {
-      id: 'WO-001',
-      operation: 'Machining',
-      workCenter: 'CNC Machine 01',
-      productName: 'Steel Frame Assembly',
-      plannedTime: '4.50', // Expected duration in hours
-      actualTime: '00.00', // Real time in hours
-      status: 'pending',
-      priority: 'high',
-      startDate: '2024-01-15',
-      assignedTo: 'John Smith'
-    },
-    {
-      id: 'WO-002',
-      operation: 'Welding',
-      workCenter: 'Welding Station A',
-      productName: 'Aluminum Frame',
-      plannedTime: '2.30',
-      actualTime: '2.45',
-      status: 'completed',
-      priority: 'medium',
-      startDate: '2024-01-14',
-      assignedTo: 'Mike Johnson'
-    },
-    {
-      id: 'WO-003',
-      operation: 'Assembly',
-      workCenter: 'Assembly Line 1',
-      productName: 'Electronic Control Unit',
-      plannedTime: '6.00',
-      actualTime: '3.20',
-      status: 'in_progress',
-      priority: 'high',
-      startDate: '2024-01-13',
-      assignedTo: 'Sarah Wilson'
-    },
-    {
-      id: 'WO-004',
-      operation: 'Quality Check',
-      workCenter: 'QC Station 02',
-      productName: 'Rubber Gasket Set',
-      plannedTime: '1.15',
-      actualTime: '00.00',
-      status: 'pending',
-      priority: 'low',
-      startDate: '2024-01-12',
-      assignedTo: 'David Brown'
-    },
-    {
-      id: 'WO-005',
-      operation: 'Painting',
-      workCenter: 'Paint Booth B',
-      productName: 'Steel Frame Assembly',
-      plannedTime: '3.45',
-      actualTime: '00.00',
-      status: 'scheduled',
-      priority: 'medium',
-      startDate: '2024-01-16',
-      assignedTo: 'Lisa Garcia'
-    },
-    {
-      id: 'WO-006',
-      operation: 'Packaging',
-      workCenter: 'Packaging Line 1',
-      productName: 'Complete Product Set',
-      plannedTime: '1.30',
-      actualTime: '1.25',
-      status: 'completed',
-      priority: 'low',
-      startDate: '2024-01-11',
-      assignedTo: 'Tom Anderson'
-    }
-  ]);
+  // Fetch work orders from API
+  useEffect(() => {
+    const fetchWorkOrders = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('/api/work-orders');
+        const data = await response.json();
+        
+        if (data.success) {
+          setWorkOrders(data.data);
+        } else {
+          setError(data.error || 'Failed to fetch work orders');
+        }
+      } catch (err) {
+        setError('Failed to fetch work orders');
+        console.error('Error fetching work orders:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const getStatusIcon = (status) => {
+    fetchWorkOrders();
+  }, []);
+
+  const getStatusIcon = (status: string) => {
     switch (status) {
       case 'completed':
         return <CheckCircle className="w-4 h-4 text-green-600" />;
-      case 'in_progress':
+      case 'started':
         return <Play className="w-4 h-4 text-blue-600" />;
-      case 'pending':
+      case 'not started':
         return <Clock className="w-4 h-4 text-yellow-600" />;
-      case 'scheduled':
-        return <AlertCircle className="w-4 h-4 text-purple-600" />;
+      case 'paused':
+        return <AlertCircle className="w-4 h-4 text-orange-600" />;
       default:
         return <XCircle className="w-4 h-4 text-red-600" />;
     }
   };
 
-  const getStatusBadge = (status) => {
+  const getStatusBadge = (status: string) => {
     const baseClasses = "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium";
     switch (status) {
       case 'completed':
         return `${baseClasses} bg-green-100 text-green-800`;
-      case 'in_progress':
+      case 'started':
         return `${baseClasses} bg-blue-100 text-blue-800`;
-      case 'pending':
+      case 'not started':
         return `${baseClasses} bg-yellow-100 text-yellow-800`;
-      case 'scheduled':
-        return `${baseClasses} bg-purple-100 text-purple-800`;
+      case 'paused':
+        return `${baseClasses} bg-orange-100 text-orange-800`;
       default:
         return `${baseClasses} bg-red-100 text-red-800`;
-    }
-  };
-
-  const getPriorityBadge = (priority) => {
-    const baseClasses = "inline-flex items-center px-2 py-1 rounded text-xs font-medium";
-    switch (priority) {
-      case 'high':
-        return `${baseClasses} bg-red-50 text-red-700 border border-red-200`;
-      case 'medium':
-        return `${baseClasses} bg-yellow-50 text-yellow-700 border border-yellow-200`;
-      case 'low':
-        return `${baseClasses} bg-green-50 text-green-700 border border-green-200`;
-      default:
-        return `${baseClasses} bg-gray-50 text-gray-700 border border-gray-200`;
     }
   };
 
   const filteredWorkOrders = workOrders.filter(order => {
     const matchesSearch = order.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          order.operation.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         order.workCenter.toLowerCase().includes(searchTerm.toLowerCase());
+                         order.workCenter.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         order.assignedTo.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesFilter = filterStatus === 'all' || order.status === filterStatus;
     return matchesSearch && matchesFilter;
   });
 
   const statusCounts = {
     all: workOrders.length,
-    pending: workOrders.filter(wo => wo.status === 'pending').length,
-    in_progress: workOrders.filter(wo => wo.status === 'in_progress').length,
+    'not started': workOrders.filter(wo => wo.status === 'not started').length,
+    started: workOrders.filter(wo => wo.status === 'started').length,
     completed: workOrders.filter(wo => wo.status === 'completed').length,
-    scheduled: workOrders.filter(wo => wo.status === 'scheduled').length
+    paused: workOrders.filter(wo => wo.status === 'paused').length
   };
 
   return (
@@ -178,9 +129,9 @@ export default function WorkOrdersPage() {
             <nav className="-mb-px flex space-x-8">
               {[
                 { key: 'all', label: 'All Orders', count: statusCounts.all },
-                { key: 'pending', label: 'Pending', count: statusCounts.pending },
-                { key: 'in_progress', label: 'In Progress', count: statusCounts.in_progress },
-                { key: 'scheduled', label: 'Scheduled', count: statusCounts.scheduled },
+                { key: 'not started', label: 'Not Started', count: statusCounts['not started'] },
+                { key: 'started', label: 'Started', count: statusCounts.started },
+                { key: 'paused', label: 'Paused', count: statusCounts.paused },
                 { key: 'completed', label: 'Completed', count: statusCounts.completed }
               ].map((tab) => (
                 <button
@@ -223,109 +174,111 @@ export default function WorkOrdersPage() {
 
         {/* Work Orders Table */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Work Order
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Operation
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Work Center
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Product Name
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Expected Duration
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Real Time
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Priority
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Assigned To
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredWorkOrders.map((order) => (
-                  <tr key={order.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
-                          <Wrench className="w-4 h-4 text-blue-600" />
-                        </div>
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">{order.id}</div>
-                          <div className="text-sm text-gray-500">{order.startDate}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{order.operation}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <MapPin className="w-4 h-4 text-gray-400 mr-2" />
-                        <span className="text-sm text-gray-900">{order.workCenter}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{order.productName}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <Clock className="w-4 h-4 text-gray-400 mr-2" />
-                        <span className="text-sm text-gray-900">{order.plannedTime}h</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <Clock className="w-4 h-4 text-gray-400 mr-2" />
-                        <span className={`text-sm font-medium ${
-                          order.actualTime === '00.00' ? 'text-gray-500' : 'text-gray-900'
-                        }`}>
-                          {order.actualTime}h
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center space-x-2">
-                        {getStatusIcon(order.status)}
-                        <span className={getStatusBadge(order.status)}>
-                          {order.status.replace('_', ' ').toUpperCase()}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={getPriorityBadge(order.priority)}>
-                        {order.priority.toUpperCase()}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {order.assignedTo}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          
-          {filteredWorkOrders.length === 0 && (
+          {loading && (
             <div className="text-center py-12">
-              <Wrench className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No Work Orders Found</h3>
-              <p className="text-gray-600">Try adjusting your search or filter criteria.</p>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading work orders...</p>
             </div>
+          )}
+          
+          {error && (
+            <div className="text-center py-12">
+              <XCircle className="w-12 h-12 text-red-300 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Error Loading Work Orders</h3>
+              <p className="text-red-600">{error}</p>
+            </div>
+          )}
+          
+          {!loading && !error && (
+            <>
+              {filteredWorkOrders.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50 border-b border-gray-200">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Operation
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Work Center
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Product Name
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Expected Duration
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Real Time
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Status
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Assigned To
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {filteredWorkOrders.map((order) => (
+                        <tr key={order.id} className="hover:bg-gray-50 transition-colors">
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center">
+                              <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mr-3">
+                                <Wrench className="w-4 h-4 text-blue-600" />
+                              </div>
+                              <div className="text-sm font-medium text-gray-900">{order.operation}</div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center">
+                              <MapPin className="w-4 h-4 text-gray-400 mr-2" />
+                              <span className="text-sm text-gray-900">{order.workCenter}</span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="text-sm font-medium text-gray-900">{order.productName}</div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center">
+                              <Clock className="w-4 h-4 text-gray-400 mr-2" />
+                              <span className="text-sm text-gray-900">{order.plannedTime}h</span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center">
+                              <Clock className="w-4 h-4 text-gray-400 mr-2" />
+                              <span className={`text-sm font-medium ${
+                                order.actualTime === '0.00' ? 'text-gray-500' : 'text-gray-900'
+                              }`}>
+                                {order.actualTime}h
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center space-x-2">
+                              {getStatusIcon(order.status)}
+                              <span className={getStatusBadge(order.status)}>
+                                {order.status.toUpperCase()}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {order.assignedTo}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <Wrench className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No Work Orders Found</h3>
+                  <p className="text-gray-600">Try adjusting your search or filter criteria.</p>
+                </div>
+              )}
+            </>
           )}
         </div>
 
@@ -349,7 +302,7 @@ export default function WorkOrdersPage() {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Pending</p>
-                <p className="text-2xl font-bold text-gray-900">{statusCounts.pending}</p>
+                <p className="text-2xl font-bold text-gray-900">{statusCounts['not started']}</p>
               </div>
             </div>
           </div>
@@ -360,7 +313,7 @@ export default function WorkOrdersPage() {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">In Progress</p>
-                <p className="text-2xl font-bold text-gray-900">{statusCounts.in_progress}</p>
+                <p className="text-2xl font-bold text-gray-900">{statusCounts.started}</p>
               </div>
             </div>
           </div>

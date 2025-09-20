@@ -1,15 +1,24 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Package, Plus, Search, Filter, Eye, Edit, Trash2, Package2, AlertCircle, FileText } from 'lucide-react';
+import { Package, Search, Plus, Eye, Edit, Trash2, Package2, AlertCircle, Filter, ChevronDown, ChevronUp, FileText } from 'lucide-react';
+import { BOMModal } from '../../components/BOMModal';
+import { EditBOMModal } from '../../components/EditBOMModal';
+import { Button } from '../../components/ui/button';
 
 export default function BillOfMaterialsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingBOM, setEditingBOM] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [sortBy, setSortBy] = useState('name'); // 'name', 'cost', 'quantity'
+  const [sortOrder, setSortOrder] = useState('asc'); // 'asc', 'desc'
+  const [showFilters, setShowFilters] = useState(false);
   const [bomItems, setBomItems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState('');
+
 
   // Fetch BOM data from database
   useEffect(() => {
@@ -79,31 +88,84 @@ export default function BillOfMaterialsPage() {
     }
   ]);
 
-  const unitOptions = ['pcs', 'kg', 'g', 'lbs', 'oz', 'm', 'cm', 'mm', 'ft', 'in', 'L', 'ml'];
 
-  const handleAddBOM = () => {
-    if (newBOM.productName && newBOM.quantity) {
-      const newItem = {
-        id: bomList.length + 1,
-        productName: newBOM.productName,
-        quantity: parseFloat(newBOM.quantity),
-        unitOfMeasure: newBOM.unitOfMeasure,
-        description: '',
-        createdDate: new Date().toISOString().split('T')[0]
-      };
-      setBomList([...bomList, newItem]);
-      setNewBOM({ productName: '', quantity: '', unitOfMeasure: 'pcs' });
-      setIsModalOpen(false);
+
+  const handleBOMSubmit = (newBOMData) => {
+    // Refresh the BOM data after successful creation
+    fetchBomData();
+  };
+
+  const handleEditBOM = (bomItem) => {
+    setEditingBOM(bomItem);
+    setIsEditModalOpen(true);
+  };
+
+  const handleEditBOMSubmit = (updatedBOMData) => {
+    // Refresh the BOM data after successful update
+    fetchBomData();
+    setIsEditModalOpen(false);
+    setEditingBOM(null);
+  };
+
+  const handleDeleteBOM = async (bomId) => {
+    if (!confirm('Are you sure you want to delete this BOM? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/bom?id=${bomId}`, {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Refresh the BOM data after successful deletion
+        fetchBomData();
+      } else {
+        setError(data.error || 'Failed to delete BOM');
+      }
+    } catch (error) {
+      console.error('Error deleting BOM:', error);
+      setError('Failed to delete BOM');
     }
   };
 
-  // Filter BOM items based on search term and status
-  const filteredBOMList = bomItems.filter(item => {
-    const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         item.id.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = filterStatus === 'all' || item.status.toLowerCase().includes(filterStatus.toLowerCase());
-    return matchesSearch && matchesStatus;
-  });
+  // Filter and sort BOM items based on search term, status, and sorting options
+  const filteredBOMList = bomItems
+    .filter(item => {
+      const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           item.id.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = filterStatus === 'all' || item.status.toLowerCase().includes(filterStatus.toLowerCase());
+      return matchesSearch && matchesStatus;
+    })
+    .sort((a, b) => {
+      let aValue, bValue;
+      
+      switch (sortBy) {
+        case 'name':
+          aValue = a.name.toLowerCase();
+          bValue = b.name.toLowerCase();
+          break;
+        case 'cost':
+          aValue = parseFloat(a.cost || 0);
+          bValue = parseFloat(b.cost || 0);
+          break;
+        case 'quantity':
+          aValue = parseInt(a.quantity || 0);
+          bValue = parseInt(b.quantity || 0);
+          break;
+        default:
+          aValue = a.name.toLowerCase();
+          bValue = b.name.toLowerCase();
+      }
+
+      if (sortBy === 'name') {
+        return sortOrder === 'asc' ? aValue.localeCompare(bValue) : bValue.localeCompare(aValue);
+      } else {
+        return sortOrder === 'asc' ? aValue - bValue : bValue - aValue;
+      }
+    });
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -134,28 +196,68 @@ export default function BillOfMaterialsPage() {
         </div>
 
         {/* Search and Filter Bar */}
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
-          <div className="flex-1">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <input
-                type="text"
-                placeholder="Search BOMs..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-black focus:border-transparent"
-              />
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <input
+                  type="text"
+                  placeholder="Search BOMs..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setShowFilters(!showFilters)}
+                  className="flex items-center space-x-2 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  <Filter className="h-4 w-4" />
+                  <span className="text-sm">Filters</span>
+                  {showFilters ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                </button>
+                <Button
+                  onClick={() => setIsModalOpen(true)}
+                  className="flex items-center space-x-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  <span>Add Bill of Material</span>
+                </Button>
+              </div>
             </div>
-          </div>
-          
-          <div className="flex gap-2">
-            <button 
-              onClick={() => setIsModalOpen(true)}
-              className="flex items-center px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Bill of Material
-            </button>
+            
+            {/* Collapsible Sort Controls */}
+            {showFilters && (
+              <div className="border-t border-gray-200 pt-4">
+                <div className="flex flex-wrap items-center gap-4">
+                  <div className="flex items-center space-x-2">
+                    <label className="text-sm font-medium text-gray-700">Sort by:</label>
+                    <select
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value)}
+                      className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="name">Alphabets (A-Z)</option>
+                      <option value="cost">Cost</option>
+                      <option value="quantity">Quantity</option>
+                    </select>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <label className="text-sm font-medium text-gray-700">Order:</label>
+                    <select
+                      value={sortOrder}
+                      onChange={(e) => setSortOrder(e.target.value)}
+                      className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="asc">{sortBy === 'name' ? 'A-Z' : 'Low to High'}</option>
+                      <option value="desc">{sortBy === 'name' ? 'Z-A' : 'High to Low'}</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -240,7 +342,7 @@ export default function BillOfMaterialsPage() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Components
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Actions
                     </th>
                   </tr>
@@ -253,7 +355,6 @@ export default function BillOfMaterialsPage() {
                           <Package className="h-5 w-5 text-gray-400 mr-3" />
                           <div>
                             <div className="text-sm font-medium text-gray-900">{item.name}</div>
-                            <div className="text-sm text-gray-500">ID: {item.id}</div>
                           </div>
                         </div>
                       </td>
@@ -266,7 +367,10 @@ export default function BillOfMaterialsPage() {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">${item.cost}</div>
+                        <div className="flex items-center">
+                          <span className="text-sm font-bold text-gray-600 mr-1">₹</span>
+                          <div className="text-sm font-medium text-gray-900">{item.cost}</div>
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
@@ -297,15 +401,18 @@ export default function BillOfMaterialsPage() {
                           )}
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div className="flex space-x-2">
-                          <button className="text-blue-600 hover:text-blue-900 transition-colors">
-                            <Eye className="h-4 w-4" />
-                          </button>
-                          <button className="text-green-600 hover:text-green-900 transition-colors">
+                      <td className="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
+                        <div className="flex items-center justify-center space-x-2">
+                          <button 
+                            onClick={() => handleEditBOM(item)}
+                            className="text-gray-600 hover:text-gray-900 transition-colors"
+                          >
                             <Edit className="h-4 w-4" />
                           </button>
-                          <button className="text-red-600 hover:text-red-900 transition-colors">
+                          <button 
+                            onClick={() => handleDeleteBOM(item.id)}
+                            className="text-red-600 hover:text-red-900 transition-colors"
+                          >
                             <Trash2 className="h-4 w-4" />
                           </button>
                         </div>
@@ -370,70 +477,22 @@ export default function BillOfMaterialsPage() {
       </div>
 
       {/* Add BOM Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-medium text-gray-900">Add New Bill of Material</h3>
-            </div>
-            <div className="px-6 py-4 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Product Name
-                </label>
-                <input
-                  type="text"
-                  value={newBOM.productName}
-                  onChange={(e) => setNewBOM({...newBOM, productName: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Enter product name"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Quantity
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={newBOM.quantity}
-                  onChange={(e) => setNewBOM({...newBOM, quantity: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Enter quantity"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Unit of Measure
-                </label>
-                <select
-                  value={newBOM.unitOfMeasure}
-                  onChange={(e) => setNewBOM({...newBOM, unitOfMeasure: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                >
-                  {unitOptions.map(unit => (
-                    <option key={unit} value={unit}>{unit}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            <div className="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
-              <button
-                onClick={() => setIsModalOpen(false)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleAddBOM}
-                className="px-4 py-2 text-sm font-medium text-white bg-black rounded-lg hover:bg-gray-800 transition-colors"
-              >
-                Add BOM
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <BOMModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSubmit={handleBOMSubmit}
+      />
+
+      {/* Edit BOM Modal */}
+      <EditBOMModal
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setEditingBOM(null);
+        }}
+        onSubmit={handleEditBOMSubmit}
+        bomData={editingBOM}
+      />
     </div>
   );
 }

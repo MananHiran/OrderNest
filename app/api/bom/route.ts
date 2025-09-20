@@ -133,3 +133,49 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const bomId = searchParams.get('id');
+
+    if (!bomId) {
+      return NextResponse.json(
+        { success: false, error: 'BOM ID is required' },
+        { status: 400 }
+      );
+    }
+
+    // Delete BOM and its components in a transaction
+    const result = await prisma.$transaction(async (tx) => {
+      // First delete all BOM components
+      await tx.bOMComponent.deleteMany({
+        where: { bom_id: bomId }
+      });
+
+      // Then delete the BOM itself
+      const deletedBOM = await tx.bOM.delete({
+        where: { bom_id: bomId }
+      });
+
+      return deletedBOM;
+    });
+
+    return NextResponse.json({
+      success: true,
+      data: result,
+      message: 'BOM deleted successfully'
+    });
+
+  } catch (error) {
+    console.error('Error deleting BOM:', error);
+    return NextResponse.json(
+      { 
+        success: false, 
+        error: 'Failed to delete BOM',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
+      { status: 500 }
+    );
+  }
+}
