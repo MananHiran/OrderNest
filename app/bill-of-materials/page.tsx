@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Package, Plus, Search, Filter, Eye, Edit, Trash2, DollarSign, Package2, AlertCircle, FileText } from 'lucide-react';
+import { Package, Plus, Search, Filter, Eye, Edit, Trash2, Package2, AlertCircle, FileText } from 'lucide-react';
 
 export default function BillOfMaterialsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -345,12 +345,12 @@ export default function BillOfMaterialsPage() {
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <div className="flex items-center">
               <div className="w-8 h-8 bg-yellow-100 rounded-lg flex items-center justify-center">
-                <DollarSign className="w-4 h-4 text-yellow-600" />
+                <span className="text-sm font-bold text-yellow-600">₹</span>
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Total Value</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  ${bomItems.reduce((sum, item) => sum + parseFloat(item.cost || 0), 0).toLocaleString()}
+                  ₹{bomItems.reduce((sum, item) => sum + parseFloat(item.cost || 0), 0).toLocaleString()}
                 </p>
               </div>
             </div>
