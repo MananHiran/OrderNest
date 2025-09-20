@@ -110,6 +110,7 @@ model Product {
   bom_components    BOMComponent[]     @relation("ComponentProduct") // RM → Used in BOMs
   manufacturing_orders ManufacturingOrder[]
   stock_ledgers     StockLedger[]
+  component_consumptions ComponentConsumption[] @relation("ConsumptionProduct") // Product → Component Consumption
 
   @@map("products")
 }
@@ -141,6 +142,23 @@ model BOMComponent {
   @@map("bom_components")
 }
 
+// 5. Component Consumption Table
+model ComponentConsumption {
+  consumption_id     String   @id @default(cuid())
+  mo_id              String   // Manufacturing Order ID
+  product_id         String   // Product ID (foreign key)
+  product_name       String   // Product Name (denormalized for performance)
+  consumption_quantity Float
+  created_at         DateTime @default(now())
+  updated_at         DateTime @updatedAt
+
+  // Relations
+  manufacturing_order ManufacturingOrder @relation(fields: [mo_id], references: [mo_id], onDelete: Cascade)
+  product            Product            @relation("ConsumptionProduct", fields: [product_id], references: [product_id], onDelete: Restrict)
+
+  @@map("component_consumption")
+}
+
 
 // 4. Manufacturing Orders (MO) Table
 model ManufacturingOrder {
@@ -164,6 +182,7 @@ model ManufacturingOrder {
   assignee     User?       @relation("AssignedToUser", fields: [assigned_to], references: [user_id])
   work_orders  WorkOrder[]
   stock_ledgers StockLedger[]
+  component_consumptions ComponentConsumption[] // MO → Component Consumption
 
   @@map("manufacturing_orders")
 }

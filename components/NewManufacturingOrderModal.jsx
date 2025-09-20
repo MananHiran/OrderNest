@@ -5,7 +5,8 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { Plus, Trash2, Calendar, User, Package } from 'lucide-react';
+import { Plus, Trash2, Calendar, User, Package, AlertTriangle } from 'lucide-react';
+import { Badge } from './ui/badge';
 
 export function NewManufacturingOrderModal({ isOpen, onClose, onSubmit }) {
   const [formData, setFormData] = useState({
@@ -130,7 +131,8 @@ export function NewManufacturingOrderModal({ isOpen, onClose, onSubmit }) {
               component_id: bomComponent.component.product_id,
               component_name: bomComponent.component.product_name,
               quantity_required: bomComponent.quantity_required,
-              unit: bomComponent.component.unit_of_measure
+              unit: bomComponent.component.unit_of_measure,
+              current_stock: bomComponent.component.current_stock || 0
             });
           });
         }
@@ -187,6 +189,64 @@ export function NewManufacturingOrderModal({ isOpen, onClose, onSubmit }) {
         )
       }));
     }
+  };
+
+  // Calculate total components required with availability checking
+  const calculateTotalComponentsRequired = () => {
+    const totalComponents = [];
+    const productQuantity = parseFloat(formData.quantity) || 0;
+
+    if (productQuantity <= 0) return totalComponents;
+
+    // Add BOM components from the selected product
+    productBOMComponents.forEach(component => {
+      const consumptionQuantity = component.quantity_required * productQuantity;
+      const currentStock = component.current_stock || 0;
+      const isAvailable = currentStock >= consumptionQuantity;
+
+      totalComponents.push({
+        component_id: component.component_id,
+        component_name: component.component_name,
+        consumption_quantity: consumptionQuantity,
+        current_stock: currentStock,
+        unit: component.unit,
+        availability: isAvailable ? 'Available' : 'Restock',
+        isAvailable: isAvailable
+      });
+    });
+
+    // Add additional BOM components
+    formData.bill_of_materials.forEach(item => {
+      if (item.component_id && item.quantity_required) {
+        const consumptionQuantity = parseFloat(item.quantity_required) * productQuantity;
+        const rawMaterial = rawMaterials.find(rm => rm.product_id === item.component_id);
+        const currentStock = rawMaterial?.current_stock || 0;
+        const isAvailable = currentStock >= consumptionQuantity;
+
+        // Check if this component is already in the list (from BOM)
+        const existingIndex = totalComponents.findIndex(tc => tc.component_id === item.component_id);
+        
+        if (existingIndex >= 0) {
+          // Update existing component with additional quantity
+          totalComponents[existingIndex].consumption_quantity += consumptionQuantity;
+          totalComponents[existingIndex].isAvailable = totalComponents[existingIndex].current_stock >= totalComponents[existingIndex].consumption_quantity;
+          totalComponents[existingIndex].availability = totalComponents[existingIndex].isAvailable ? 'Available' : 'Restock';
+        } else {
+          // Add new component
+          totalComponents.push({
+            component_id: item.component_id,
+            component_name: item.component_name,
+            consumption_quantity: consumptionQuantity,
+            current_stock: currentStock,
+            unit: item.unit,
+            availability: isAvailable ? 'Available' : 'Restock',
+            isAvailable: isAvailable
+          });
+        }
+      }
+    });
+
+    return totalComponents;
   };
 
   const validateForm = () => {
@@ -525,6 +585,77 @@ export function NewManufacturingOrderModal({ isOpen, onClose, onSubmit }) {
             )}
           </CardContent>
         </Card>
+
+        {/* Total Components Required */}
+        {(formData.product_id && formData.quantity && parseFloat(formData.quantity) > 0) && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <AlertTriangle className="w-5 h-5" />
+                <span>Total Components Required</span>
+              </CardTitle>
+              <p className="text-sm text-gray-600 mt-1">
+                Total consumption based on product quantity ({formData.quantity} units)
+              </p>
+            </CardHeader>
+            <CardContent>
+              {(() => {
+                const totalComponents = calculateTotalComponentsRequired();
+                
+                if (totalComponents.length === 0) {
+                  return (
+                    <p className="text-gray-500 text-center py-4">
+                      No components required for this product.
+                    </p>
+                  );
+                }
+
+                return (
+                  <div className="space-y-3">
+                    {totalComponents.map((component, index) => (
+                      <div key={index} className="flex items-center justify-between p-3 border rounded-lg bg-gray-50">
+                        <div className="flex-1 grid grid-cols-4 gap-3 items-center">
+                          <div>
+                            <p className="font-medium text-sm">{component.component_name}</p>
+                            <p className="text-xs text-gray-500">Component</p>
+                          </div>
+                          <div className="text-center">
+                            <p className="font-medium text-sm">{component.consumption_quantity.toFixed(2)}</p>
+                            <p className="text-xs text-gray-500">Required ({component.unit})</p>
+                          </div>
+                          <div className="text-center">
+                            <p className="font-medium text-sm">{component.current_stock.toFixed(2)}</p>
+                            <p className="text-xs text-gray-500">In Stock ({component.unit})</p>
+                          </div>
+                          <div className="text-center">
+                            <Badge 
+                              variant={component.isAvailable ? "default" : "destructive"}
+                              className={component.isAvailable ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}
+                            >
+                              {component.availability}
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    
+                    {/* Summary */}
+                    <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium text-blue-900">
+                          Total Components: {totalComponents.length}
+                        </span>
+                        <span className="font-medium text-blue-900">
+                          Need Restock: {totalComponents.filter(c => !c.isAvailable).length}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+            </CardContent>
+          </Card>
+        )}
 
         <ModalFooter>
           <Button type="button" variant="outline" onClick={onClose}>

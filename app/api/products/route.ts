@@ -18,7 +18,8 @@ export async function GET(request: NextRequest) {
                 select: {
                   product_id: true,
                   product_name: true,
-                  unit_of_measure: true
+                  unit_of_measure: true,
+                  current_stock: true
                 }
               }
             }
