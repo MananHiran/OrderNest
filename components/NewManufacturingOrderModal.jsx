@@ -121,19 +121,26 @@ export function NewManufacturingOrderModal({ isOpen, onClose, onSubmit }) {
         unit_of_measure: selectedProduct.unit_of_measure
       }));
 
-      // Extract BOM components from the selected product
+      // Extract BOM components from the selected product's relational BOM data
       const bomComponents = [];
+      
       if (selectedProduct.boms_as_product && selectedProduct.boms_as_product.length > 0) {
-        const bom = selectedProduct.boms_as_product[0]; // Get the first BOM
-        if (bom.components && bom.components.length > 0) {
+        // Use the first BOM (assuming one BOM per product)
+        const bom = selectedProduct.boms_as_product[0];
+        
+        if (bom.components && Array.isArray(bom.components)) {
           bom.components.forEach(bomComponent => {
-            bomComponents.push({
-              component_id: bomComponent.component.product_id,
-              component_name: bomComponent.component.product_name,
-              quantity_required: bomComponent.quantity_required,
-              unit: bomComponent.component.unit_of_measure,
-              current_stock: bomComponent.component.current_stock || 0
-            });
+            // Find the raw material details
+            const rawMaterial = rawMaterials.find(rm => rm.product_id === bomComponent.component_id);
+            if (rawMaterial) {
+              bomComponents.push({
+                component_id: bomComponent.component_id,
+                component_name: rawMaterial.product_name,
+                quantity_required: bomComponent.quantity_required,
+                unit: rawMaterial.unit_of_measure,
+                current_stock: rawMaterial.current_stock || 0
+              });
+            }
           });
         }
       }
@@ -292,7 +299,23 @@ export function NewManufacturingOrderModal({ isOpen, onClose, onSubmit }) {
 
     setIsSubmitting(true);
     try {
-      await onSubmit(formData);
+      // Calculate component consumption data
+      const totalComponents = calculateTotalComponentsRequired();
+      
+      const componentConsumptions = totalComponents.map(component => ({
+        product_id: component.component_id,
+        product_name: component.component_name,
+        consumption_quantity: component.consumption_quantity,
+        flag: component.isAvailable // true if available, false if needs restock
+      }));
+
+      // Include component consumption data in form submission
+      const orderDataWithComponents = {
+        ...formData,
+        component_consumptions: componentConsumptions
+      };
+
+      await onSubmit(orderDataWithComponents);
       onClose();
     } catch (error) {
       console.error('Error creating manufacturing order:', error);

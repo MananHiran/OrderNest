@@ -72,12 +72,41 @@ export default function DashboardPage() {
 
   const handleCreateOrder = async (orderData: any) => {
     try {
-      // For now, we'll just show a success message
-      // In a real app, you'd call the API to create the order
       console.log('Creating manufacturing order:', orderData);
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Get current user for created_by field
+      const currentUser = getCurrentUser();
+      if (!currentUser) {
+        throw new Error('User not authenticated');
+      }
+
+      // Prepare the order data for API
+      const apiOrderData = {
+        product_id: orderData.product_id,
+        quantity: orderData.quantity,
+        scheduled_start: orderData.scheduled_start,
+        scheduled_end: orderData.scheduled_end,
+        created_by: currentUser.user_id,
+        assigned_to: orderData.assigned_to || null,
+        component_consumptions: orderData.component_consumptions || []
+      };
+
+      // Call the API to create the order
+      const response = await fetch('/api/manufacturing-orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(apiOrderData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create manufacturing order');
+      }
+
+      const newOrder = await response.json();
+      console.log('Manufacturing order created successfully:', newOrder);
       
       // Refresh the orders list
       await fetchManufacturingOrders();
@@ -85,7 +114,7 @@ export default function DashboardPage() {
       alert('Manufacturing order created successfully!');
     } catch (error) {
       console.error('Error creating order:', error);
-      alert('Failed to create manufacturing order. Please try again.');
+      alert(`Failed to create manufacturing order: ${error instanceof Error ? error.message : 'Please try again.'}`);
     }
   };
 
@@ -335,7 +364,7 @@ export default function DashboardPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStateBadgeColor(order.state)}`}>
-                          {order.state.replace('_', ' ').replace('Not_Avaliable', 'Not Available')}
+                          {order.state.replace('_', ' ').replace('Not_Available', 'Not Available')}
                         </span>
                       </td>
                     </motion.tr>
