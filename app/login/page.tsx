@@ -1,17 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
-import { Eye, EyeOff, Mail, Lock, ArrowRight, CheckCircle } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, ArrowRight } from "lucide-react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function LoginPage() {
-  const searchParams = useSearchParams();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -19,19 +17,6 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
-  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
-
-  useEffect(() => {
-    // Check if user was redirected from registration
-    if (searchParams.get('registered') === 'true') {
-      setShowSuccessMessage(true);
-      // Hide the message after 5 seconds
-      const timer = setTimeout(() => {
-        setShowSuccessMessage(false);
-      }, 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [searchParams]);
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
@@ -98,23 +83,6 @@ export default function LoginPage() {
             </div>
           </CardHeader>
 
-          {showSuccessMessage && (
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="mx-6 mb-4"
-            >
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center space-x-3">
-                <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
-                <div className="text-sm text-green-800">
-                  <p className="font-medium">Registration successful!</p>
-                  <p>You can now sign in with your credentials.</p>
-                </div>
-              </div>
-            </motion.div>
-          )}
-
           <CardContent className="space-y-6">
             <form onSubmit={handleSubmit} className="space-y-4">
               <motion.div
@@ -133,7 +101,7 @@ export default function LoginPage() {
                     type="email"
                     placeholder="Enter your email"
                     value={formData.email}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange("email", e.target.value)}
+                    onChange={(e) => handleInputChange("email", e.target.value)}
                     className={`pl-10 border-gray-300 focus:border-black focus:ring-black ${errors.email ? "border-red-500" : ""}`}
                   />
                 </div>
@@ -164,7 +132,7 @@ export default function LoginPage() {
                     type={showPassword ? "text" : "password"}
                     placeholder="Enter your password"
                     value={formData.password}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange("password", e.target.value)}
+                    onChange={(e) => handleInputChange("password", e.target.value)}
                     className={`pl-10 pr-10 border-gray-300 focus:border-black focus:ring-black ${errors.password ? "border-red-500" : ""}`}
                   />
                   <button
@@ -194,8 +162,6 @@ export default function LoginPage() {
                 <Button
                   type="submit"
                   disabled={isLoading}
-                  variant="default"
-                  size="default"
                   className="w-full bg-black hover:bg-gray-800 text-white font-medium py-2.5 rounded-lg transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isLoading ? (

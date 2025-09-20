@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
         name: username,
         email,
         password_hash: hashedPassword,
-        role: UserRole.USER, // Default role for new registrations
+        role: UserRole.OPERATOR_MANAGER, // Default role, can be changed based on requirements
       },
       select: {
         user_id: true,
