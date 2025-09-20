@@ -44,13 +44,34 @@ export default function LoginPage() {
 
     setIsLoading(true);
     
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Store user data in localStorage for session management
+        localStorage.setItem('user', JSON.stringify(data.user));
+        localStorage.setItem('isAuthenticated', 'true');
+        
+        // Redirect to dashboard on successful login
+        router.push('/dashboard');
+      } else {
+        // Handle login error
+        setErrors({ submit: data.error || 'Login failed' });
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      setErrors({ submit: 'Network error. Please try again.' });
+    } finally {
       setIsLoading(false);
-      console.log("Login data:", formData);
-      // Handle successful login here - redirect to dashboard
-      router.push('/dashboard');
-    }, 2000);
+    }
   };
 
   const handleInputChange = (field: string, value: string) => {
@@ -182,6 +203,15 @@ export default function LoginPage() {
                     </span>
                   )}
                 </Button>
+                {errors.submit && (
+                  <motion.p
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="text-sm text-red-500 mt-2 text-center"
+                  >
+                    {errors.submit}
+                  </motion.p>
+                )}
               </motion.div>
             </form>
 

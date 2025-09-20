@@ -1,9 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Factory, Loader2, RefreshCw, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { NewManufacturingOrderModal } from "@/components/NewManufacturingOrderModal";
+import { isAuthenticated, getCurrentUser, logout } from "@/lib/auth";
 
 interface ManufacturingOrder {
   mo_id: string;
@@ -25,9 +28,12 @@ interface ManufacturingOrder {
 }
 
 export default function DashboardPage() {
+  const router = useRouter();
   const [manufacturingOrders, setManufacturingOrders] = useState<ManufacturingOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [user, setUser] = useState<any>(null);
 
   const fetchManufacturingOrders = async () => {
     try {
@@ -50,8 +56,43 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
+    // Check authentication
+    if (!isAuthenticated()) {
+      router.push('/login');
+      return;
+    }
+    
+    // Get current user
+    const currentUser = getCurrentUser();
+    setUser(currentUser);
+    
+    // Fetch manufacturing orders
     fetchManufacturingOrders();
-  }, []);
+  }, [router]);
+
+  const handleCreateOrder = async (orderData: any) => {
+    try {
+      // For now, we'll just show a success message
+      // In a real app, you'd call the API to create the order
+      console.log('Creating manufacturing order:', orderData);
+      
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Refresh the orders list
+      await fetchManufacturingOrders();
+      
+      alert('Manufacturing order created successfully!');
+    } catch (error) {
+      console.error('Error creating order:', error);
+      alert('Failed to create manufacturing order. Please try again.');
+    }
+  };
+
+  const handleLogout = () => {
+    logout();
+    router.push('/login');
+  };
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'Not set';
@@ -100,7 +141,7 @@ export default function DashboardPage() {
       {/* Header with Logo */}
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex justify-center">
+          <div className="flex justify-between items-center">
             <motion.div
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -115,6 +156,29 @@ export default function DashboardPage() {
               </div>
               <p className="text-gray-600">Manufacturing ERP Dashboard</p>
             </motion.div>
+            
+            {/* User Info and Logout */}
+            {user && (
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.6 }}
+                className="flex items-center space-x-4"
+              >
+                <div className="text-right">
+                  <p className="text-sm font-medium text-gray-900">{user.name}</p>
+                  <p className="text-xs text-gray-500">{user.role.replace('_', ' ')}</p>
+                </div>
+                <Button
+                  onClick={handleLogout}
+                  variant="outline"
+                  size="sm"
+                  className="text-gray-600 hover:text-gray-900"
+                >
+                  Logout
+                </Button>
+              </motion.div>
+            )}
           </div>
         </div>
       </header>
@@ -152,6 +216,7 @@ export default function DashboardPage() {
               variant="default"
               size="default"
               className="flex items-center space-x-2"
+              onClick={() => setIsModalOpen(true)}
             >
               <Plus className="w-4 h-4" />
               <span>New Order</span>
@@ -313,6 +378,13 @@ export default function DashboardPage() {
             </div>
           </motion.div>
         )}
+
+        {/* New Manufacturing Order Modal */}
+        <NewManufacturingOrderModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          onSubmit={handleCreateOrder}
+        />
       </main>
     </div>
   );

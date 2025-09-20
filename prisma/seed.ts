@@ -1,4 +1,4 @@
-import { PrismaClient, UserRole, ProductType, UnitType, ComponentState, ManufacturingOrderStatus } from '../lib/generated/prisma';
+import { PrismaClient, UserRole, ProductType, UnitType, ComponentState, ManufacturingOrderStatus } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();

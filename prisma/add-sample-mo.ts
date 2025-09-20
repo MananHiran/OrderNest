@@ -1,4 +1,4 @@
-import { PrismaClient, ProductType, UnitType, ComponentState, ManufacturingOrderStatus } from '../lib/generated/prisma';
+import { PrismaClient, ProductType, UnitType, ComponentState, ManufacturingOrderStatus } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
