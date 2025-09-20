@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Eye, EyeOff, Mail, Lock, ArrowRight } from "lucide-react";
 import Link from "next/link";
@@ -10,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function LoginPage() {
+  const router = useRouter();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -46,7 +48,8 @@ export default function LoginPage() {
     setTimeout(() => {
       setIsLoading(false);
       console.log("Login data:", formData);
-      // Handle successful login here
+      // Handle successful login here - redirect to dashboard
+      router.push('/dashboard');
     }, 2000);
   };
 
@@ -101,7 +104,7 @@ export default function LoginPage() {
                     type="email"
                     placeholder="Enter your email"
                     value={formData.email}
-                    onChange={(e) => handleInputChange("email", e.target.value)}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange("email", e.target.value)}
                     className={`pl-10 border-gray-300 focus:border-black focus:ring-black ${errors.email ? "border-red-500" : ""}`}
                   />
                 </div>
@@ -132,7 +135,7 @@ export default function LoginPage() {
                     type={showPassword ? "text" : "password"}
                     placeholder="Enter your password"
                     value={formData.password}
-                    onChange={(e) => handleInputChange("password", e.target.value)}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange("password", e.target.value)}
                     className={`pl-10 pr-10 border-gray-300 focus:border-black focus:ring-black ${errors.password ? "border-red-500" : ""}`}
                   />
                   <button
@@ -162,6 +165,8 @@ export default function LoginPage() {
                 <Button
                   type="submit"
                   disabled={isLoading}
+                  variant="default"
+                  size="default"
                   className="w-full bg-black hover:bg-gray-800 text-white font-medium py-2.5 rounded-lg transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isLoading ? (

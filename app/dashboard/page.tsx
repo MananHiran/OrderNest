@@ -1,27 +1,33 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
+import { Factory, Loader2, RefreshCw, Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface ManufacturingOrder {
-  id: string;
-  startDate: string;
-  productName: string;
-  status: string;
+  mo_id: string;
+  product_id: string;
   quantity: number;
-  unit: string;
+  status: string;
   state: string;
-  productType: string;
+  scheduled_start: string | null;
+  scheduled_end: string | null;
+  actual_start: string | null;
+  actual_end: string | null;
+  created_at: string;
+  updated_at: string;
+  product: {
+    product_name: string;
+    unit_of_measure: string;
+    type: string;
+  };
 }
 
-export default function Dashboard() {
-  const [orders, setOrders] = useState<ManufacturingOrder[]>([]);
+export default function DashboardPage() {
+  const [manufacturingOrders, setManufacturingOrders] = useState<ManufacturingOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetchManufacturingOrders();
-  }, []);
 
   const fetchManufacturingOrders = async () => {
     try {
@@ -33,15 +39,22 @@ export default function Dashboard() {
       }
       
       const data = await response.json();
-      setOrders(data);
+      setManufacturingOrders(data);
+      setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
+      console.error('Error fetching manufacturing orders:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  const formatDate = (dateString: string) => {
+  useEffect(() => {
+    fetchManufacturingOrders();
+  }, []);
+
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return 'Not set';
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
@@ -49,28 +62,44 @@ export default function Dashboard() {
     });
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusBadgeColor = (status: string) => {
     switch (status.toLowerCase()) {
       case 'draft':
-        return 'text-gray-600 bg-gray-100';
+        return 'bg-gray-100 text-gray-800';
       case 'confirmed':
-        return 'text-blue-600 bg-blue-100';
+        return 'bg-blue-100 text-blue-800';
       case 'in_progress':
-        return 'text-yellow-600 bg-yellow-100';
+      case 'in-progress':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'to_close':
+      case 'to-close':
+        return 'bg-orange-100 text-orange-800';
       case 'done':
-        return 'text-green-600 bg-green-100';
-      case 'cancelled':
-        return 'text-red-600 bg-red-100';
+        return 'bg-green-100 text-green-800';
       default:
-        return 'text-gray-600 bg-gray-100';
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getStateBadgeColor = (state: string) => {
+    switch (state.toLowerCase()) {
+      case 'avaliable':
+      case 'available':
+        return 'bg-green-100 text-green-800';
+      case 'not_avaliable':
+      case 'not_available':
+      case 'not-available':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-gray-50">
       {/* Header with Logo */}
-      <header className="bg-black text-white py-8">
-        <div className="container mx-auto px-4">
+      <header className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex justify-center">
             <motion.div
               initial={{ opacity: 0, y: -20 }}
@@ -78,113 +107,212 @@ export default function Dashboard() {
               transition={{ duration: 0.6 }}
               className="text-center"
             >
-              <h1 className="text-4xl font-bold tracking-wider">
-                MANUFACTURING
-              </h1>
-              <p className="text-lg text-gray-300 mt-2">Dashboard</p>
+              <div className="flex items-center justify-center space-x-3 mb-2">
+                <div className="bg-black rounded-xl p-3">
+                  <Factory className="w-8 h-8 text-white" />
+                </div>
+                <h1 className="text-3xl font-bold text-gray-900">OrderNest</h1>
+              </div>
+              <p className="text-gray-600">Manufacturing ERP Dashboard</p>
             </motion.div>
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Dashboard Title and Actions */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
+          transition={{ delay: 0.2 }}
+          className="flex justify-between items-center mb-8"
         >
-          <h2 className="text-2xl font-bold text-black mb-6">Manufacturing Orders</h2>
-
-          {loading && (
-            <div className="flex justify-center items-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
-            </div>
-          )}
-
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6">
-              {error}
-            </div>
-          )}
-
-          {!loading && !error && (
-            <div className="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-black text-white">
-                    <tr>
-                      <th className="px-6 py-4 text-left text-sm font-medium uppercase tracking-wider">
-                        ID
-                      </th>
-                      <th className="px-6 py-4 text-left text-sm font-medium uppercase tracking-wider">
-                        Start Date
-                      </th>
-                      <th className="px-6 py-4 text-left text-sm font-medium uppercase tracking-wider">
-                        Product Name
-                      </th>
-                      <th className="px-6 py-4 text-left text-sm font-medium uppercase tracking-wider">
-                        Status
-                      </th>
-                      <th className="px-6 py-4 text-left text-sm font-medium uppercase tracking-wider">
-                        Quantity
-                      </th>
-                      <th className="px-6 py-4 text-left text-sm font-medium uppercase tracking-wider">
-                        Unit
-                      </th>
-                      <th className="px-6 py-4 text-left text-sm font-medium uppercase tracking-wider">
-                        State
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {orders.map((order, index) => (
-                      <motion.tr
-                        key={order.id}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.4, delay: index * 0.1 }}
-                        className="hover:bg-gray-50 transition-colors"
-                      >
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-black">
-                          {order.id}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                          {formatDate(order.startDate)}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
-                          {order.productName}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(order.status)}`}>
-                            {order.status.replace('_', ' ')}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                          {order.quantity}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                          {order.unit}
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(order.state)}`}>
-                            {order.state.replace('_', ' ')}
-                          </span>
-                        </td>
-                      </motion.tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {orders.length === 0 && !loading && (
-                <div className="text-center py-12">
-                  <p className="text-gray-500 text-lg">No manufacturing orders found</p>
-                </div>
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">Manufacturing Orders</h2>
+            <p className="text-gray-600 mt-1">
+              Manage and track your production orders
+            </p>
+          </div>
+          <div className="flex space-x-3">
+            <Button
+              onClick={fetchManufacturingOrders}
+              variant="outline"
+              size="default"
+              disabled={loading}
+              className="flex items-center space-x-2"
+            >
+              {loading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <RefreshCw className="w-4 h-4" />
               )}
+              <span>Refresh</span>
+            </Button>
+            <Button
+              variant="default"
+              size="default"
+              className="flex items-center space-x-2"
+            >
+              <Plus className="w-4 h-4" />
+              <span>New Order</span>
+            </Button>
+          </div>
+        </motion.div>
+
+        {/* Manufacturing Orders Table */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="bg-white rounded-lg shadow-sm border overflow-hidden"
+        >
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <Loader2 className="w-8 h-8 animate-spin text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600">Loading manufacturing orders...</p>
+              </div>
+            </div>
+          ) : error ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <div className="text-red-500 mb-4">
+                  <Factory className="w-8 h-8 mx-auto" />
+                </div>
+                <p className="text-red-600 mb-4">{error}</p>
+                <Button
+                  onClick={fetchManufacturingOrders}
+                  variant="outline"
+                  size="default"
+                  className=""
+                >
+                  Try Again
+                </Button>
+              </div>
+            </div>
+          ) : manufacturingOrders.length === 0 ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center">
+                <Factory className="w-8 h-8 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600 mb-4">No manufacturing orders found</p>
+                <p className="text-sm text-gray-500">Create your first manufacturing order to get started</p>
+              </div>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Order ID
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Start Date
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Product Name
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Quantity
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Unit
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      State
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {manufacturingOrders.map((order, index) => (
+                    <motion.tr
+                      key={order.mo_id}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.1 * index }}
+                      className="hover:bg-gray-50"
+                    >
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-gray-900">
+                          {order.mo_id}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">
+                          {formatDate(order.scheduled_start || order.created_at)}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-gray-900">
+                          {order.product.product_name}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {order.product.type.replace('_', ' ')}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadgeColor(order.status)}`}>
+                          {order.status.replace('_', ' ').toUpperCase()}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-gray-900">
+                          {order.quantity.toLocaleString()}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm text-gray-900">
+                          {order.product.unit_of_measure}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStateBadgeColor(order.state)}`}>
+                          {order.state.replace('_', ' ').replace('Not_Avaliable', 'Not Available')}
+                        </span>
+                      </td>
+                    </motion.tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </motion.div>
+
+        {/* Summary Stats */}
+        {manufacturingOrders.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+            className="mt-8 grid grid-cols-1 md:grid-cols-4 gap-4"
+          >
+            <div className="bg-white rounded-lg shadow-sm border p-4">
+              <div className="text-sm font-medium text-gray-600">Total Orders</div>
+              <div className="text-2xl font-bold text-gray-900">{manufacturingOrders.length}</div>
+            </div>
+            <div className="bg-white rounded-lg shadow-sm border p-4">
+              <div className="text-sm font-medium text-gray-600">In Progress</div>
+              <div className="text-2xl font-bold text-yellow-600">
+                {manufacturingOrders.filter(order => order.status.toLowerCase() === 'in_progress').length}
+              </div>
+            </div>
+            <div className="bg-white rounded-lg shadow-sm border p-4">
+              <div className="text-sm font-medium text-gray-600">Completed</div>
+              <div className="text-2xl font-bold text-green-600">
+                {manufacturingOrders.filter(order => order.status.toLowerCase() === 'done').length}
+              </div>
+            </div>
+            <div className="bg-white rounded-lg shadow-sm border p-4">
+              <div className="text-sm font-medium text-gray-600">Draft</div>
+              <div className="text-2xl font-bold text-gray-600">
+                {manufacturingOrders.filter(order => order.status.toLowerCase() === 'draft').length}
+              </div>
+            </div>
+          </motion.div>
+        )}
       </main>
     </div>
   );
