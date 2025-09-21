@@ -2,6 +2,8 @@
 
 A comprehensive Manufacturing ERP (Enterprise Resource Planning) system built with modern web technologies. OrderNest streamlines manufacturing operations, inventory management, and production planning with an intuitive user interface.
 
+Video Link: [Here](https://drive.google.com/file/d/1mxi8-mIDSKkJaP3PUBvBaLq_57K231WQ/view?usp=sharing)
+
 ## 🚀 Features
 
 ### Core Functionality
