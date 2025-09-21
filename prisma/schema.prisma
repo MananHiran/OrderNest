@@ -44,17 +44,6 @@ enum WorkOrderStatus {
   COMPLETED
 }
 
-enum MovementType {
-  IN
-  OUT
-}
-
-enum ReferenceType {
-  MO
-  WO
-  MANUAL_ADJUSTMENT
-}
-
 enum ReportType {
   USER_ACTIVITY
   PRODUCTION_SUMMARY
@@ -183,7 +172,6 @@ model ManufacturingOrder {
   creator      User        @relation("CreatedByUser", fields: [created_by], references: [user_id])
   assignee     User?       @relation("AssignedToUser", fields: [assigned_to], references: [user_id])
   work_orders  WorkOrder[]
-  stock_ledgers StockLedger[]
   component_consumptions ComponentConsumption[] // MO → Component Consumption
 
   @@map("manufacturing_orders")
@@ -207,7 +195,7 @@ model WorkOrder {
   manufacturing_order ManufacturingOrder @relation(fields: [mo_id], references: [mo_id], onDelete: Cascade)
   work_center        WorkCenter         @relation(fields: [work_center_id], references: [work_center_id])
   assignee           User?              @relation("AssignedToUser", fields: [assigned_to], references: [user_id])
-  stock_ledgers      StockLedger[]
+  
 
   @@map("work_orders")
 }
@@ -230,9 +218,10 @@ model WorkCenter {
 model StockLedger {
   ledger_id      String        @id @default(cuid())
   product_id     String
-  movement_type  MovementType
-  quantity       Float
-  reference_type ReferenceType
+  incoming       Float
+  outgoing       Float
+  free_to_use    Float
+ 
   reference_id   String
   created_at     DateTime      @default(now())
   created_by     String
@@ -240,8 +229,7 @@ model StockLedger {
   // Relations
   product              Product             @relation(fields: [product_id], references: [product_id], onDelete: Cascade)
   creator              User                @relation(fields: [created_by], references: [user_id])
-  manufacturing_order  ManufacturingOrder? @relation(fields: [reference_id], references: [mo_id])
-  work_order           WorkOrder?          @relation(fields: [reference_id], references: [wo_id])
+ 
 
   @@map("stock_ledger")
 }

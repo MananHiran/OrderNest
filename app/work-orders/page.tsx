@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Wrench, Plus, Search, Filter, Package, Clock, MapPin, CheckCircle, AlertCircle, XCircle, Play, ChevronDown, SortAsc, SortDesc } from 'lucide-react';
+import { Wrench, Search, Filter, Package, Clock, MapPin, CheckCircle, AlertCircle, XCircle, Play, ChevronDown, SortAsc, SortDesc } from 'lucide-react';
 
 interface WorkOrder {
   id: string;
@@ -254,10 +254,6 @@ export default function WorkOrdersPage() {
               </div>
             )}
           </div>
-          <button className="flex items-center space-x-2 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors">
-            <Plus className="w-4 h-4" />
-            <span>New Work Order</span>
-          </button>
         </div>
 
         {/* Work Orders Table */}
