@@ -219,8 +219,8 @@ model StockLedger {
   ledger_id      String        @id @default(cuid())
   product_id     String
   incoming       Float
-  outgoing       Float
   free_to_use    Float
+  outgoing       Float
  
   reference_id   String
   created_at     DateTime      @default(now())
