@@ -1,7 +1,6 @@
 import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
+import "../globals.css";
 import { Metadata } from "next";
-import Sidebar from "@/components/Sidebar";
 import { Toaster } from "@/components/ui/sonner";
 
 const geistSans = Geist({
@@ -15,11 +14,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "OrderNest - Manufacturing ERP",
-  description: "Complete manufacturing and inventory management system",
+  title: "OrderNest - Authentication",
+  description: "Login or register to access OrderNest manufacturing ERP system",
 };
 
-export default function RootLayout({
+export default function AuthLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -30,10 +29,7 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-50`}
       >
         <div className="min-h-screen">
-          <Sidebar />
-          <main className="transition-all duration-300">
-            {children}
-          </main>
+          {children}
         </div>
         <Toaster />
       </body>

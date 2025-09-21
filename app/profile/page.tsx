@@ -8,8 +8,8 @@ import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { toast } from 'sonner';
 import { 
   User, 
   Mail, 
@@ -38,9 +38,8 @@ interface UserProfile {
 export default function ProfilePage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [updating, setUpdating] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showPasswords, setShowPasswords] = useState({ current: false, new: false, confirm: false });
   
@@ -79,10 +78,10 @@ export default function ProfilePage() {
           confirmPassword: ''
         });
       } else {
-        setMessage({ type: 'error', text: 'Failed to load profile' });
+        toast.error('Failed to load profile');
       }
     } catch (error) {
-      setMessage({ type: 'error', text: 'Error loading profile' });
+      toast.error('Error loading profile');
     } finally {
       setLoading(false);
     }
@@ -94,17 +93,17 @@ export default function ProfilePage() {
 
   const handleProfileUpdate = async () => {
     if (formData.newPassword && formData.newPassword !== formData.confirmPassword) {
-      setMessage({ type: 'error', text: 'New passwords do not match' });
+      toast.error('New passwords do not match');
       return;
     }
 
     if (formData.newPassword && !formData.currentPassword) {
-      setMessage({ type: 'error', text: 'Current password is required to set new password' });
+      toast.error('Current password is required to set new password');
       return;
     }
 
     try {
-      setSaving(true);
+      setUpdating(true);
       const updateData: any = {
         email: userEmail,
         name: formData.name,
@@ -131,15 +130,15 @@ export default function ProfilePage() {
           newPassword: '',
           confirmPassword: ''
         }));
-        setMessage({ type: 'success', text: 'Profile updated successfully' });
+        toast.success('Profile updated successfully');
       } else {
         const error = await response.json();
-        setMessage({ type: 'error', text: error.error || 'Failed to update profile' });
+        toast.error(error.error || 'Failed to update profile');
       }
     } catch (error) {
-      setMessage({ type: 'error', text: 'Error updating profile' });
+      toast.error('Error updating profile');
     } finally {
-      setSaving(false);
+      setUpdating(false);
     }
   };
 
@@ -161,13 +160,13 @@ export default function ProfilePage() {
       if (response.ok) {
         const result = await response.json();
         setProfile(result.user);
-        setMessage({ type: 'success', text: 'Profile picture updated successfully' });
+        toast.success('Profile picture updated successfully');
       } else {
         const error = await response.json();
-        setMessage({ type: 'error', text: error.error || 'Failed to upload profile picture' });
+        toast.error(error.error || 'Failed to upload profile picture');
       }
     } catch (error) {
-      setMessage({ type: 'error', text: 'Error uploading profile picture' });
+      toast.error('Error uploading profile picture');
     } finally {
       setUploading(false);
     }
@@ -180,17 +179,19 @@ export default function ProfilePage() {
       });
 
       if (response.ok) {
-        setMessage({ type: 'success', text: 'Account deleted successfully' });
+        toast.success('Account deleted successfully', {
+          description: 'Redirecting to login page...'
+        });
         // Redirect to login or home page
         setTimeout(() => {
           window.location.href = '/login';
         }, 2000);
       } else {
         const error = await response.json();
-        setMessage({ type: 'error', text: error.error || 'Failed to delete account' });
+        toast.error(error.error || 'Failed to delete account');
       }
     } catch (error) {
-      setMessage({ type: 'error', text: 'Error deleting account' });
+      toast.error('Error deleting account');
     }
     setShowDeleteConfirm(false);
   };
@@ -219,10 +220,9 @@ export default function ProfilePage() {
   if (!profile) {
     return (
       <div className="container mx-auto p-6">
-        <Alert>
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>Profile not found</AlertDescription>
-        </Alert>
+        <div className="text-center py-8">
+          <p className="text-muted-foreground">Profile not found</p>
+        </div>
       </div>
     );
   }
@@ -234,12 +234,7 @@ export default function ProfilePage() {
         <p className="text-muted-foreground">Manage your account settings and preferences</p>
       </div>
 
-      {message && (
-        <Alert className={`mb-6 ${message.type === 'success' ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}`}>
-          {message.type === 'success' ? <CheckCircle className="h-4 w-4" /> : <AlertTriangle className="h-4 w-4" />}
-          <AlertDescription>{message.text}</AlertDescription>
-        </Alert>
-      )}
+
 
       <Tabs defaultValue="profile" className="space-y-6">
         <TabsList>
@@ -340,9 +335,9 @@ export default function ProfilePage() {
                   </div>
                 </div>
 
-                <Button onClick={handleProfileUpdate} disabled={saving} className="w-full">
+                <Button onClick={handleProfileUpdate} disabled={updating} className="w-full">
                   <Save className="w-4 h-4 mr-2" />
-                  {saving ? 'Saving...' : 'Save Changes'}
+                  {updating ? 'Updating...' : 'Save Changes'}
                 </Button>
               </CardContent>
             </Card>
@@ -422,9 +417,9 @@ export default function ProfilePage() {
                 </div>
               </div>
 
-              <Button onClick={handleProfileUpdate} disabled={saving} className="w-full">
+              <Button onClick={handleProfileUpdate} disabled={updating} className="w-full">
                 <Save className="w-4 h-4 mr-2" />
-                {saving ? 'Updating...' : 'Update Password'}
+                {updating ? 'Updating...' : 'Update Password'}
               </Button>
             </CardContent>
           </Card>

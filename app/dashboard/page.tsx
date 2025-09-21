@@ -7,6 +7,7 @@ import { Factory, Loader2, RefreshCw, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NewManufacturingOrderModal } from "@/components/NewManufacturingOrderModal";
 import { isAuthenticated, getCurrentUser, logout } from "@/lib/auth";
+import { toast } from "sonner";
 
 interface ManufacturingOrder {
   mo_id: string;
@@ -112,10 +113,14 @@ export default function DashboardPage() {
       // Refresh the orders list
       await fetchManufacturingOrders();
       
-      alert('Manufacturing order created successfully!');
+      toast.success('Manufacturing order created successfully!', {
+        description: `Order ${newOrder.mo_id} has been created and is ready for production.`
+      });
     } catch (error) {
       console.error('Error creating order:', error);
-      alert(`Failed to create manufacturing order: ${error instanceof Error ? error.message : 'Please try again.'}`);
+      toast.error('Failed to create manufacturing order', {
+        description: error instanceof Error ? error.message : 'Please try again.'
+      });
     }
   };
 
