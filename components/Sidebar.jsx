@@ -13,15 +13,18 @@ import {
   Menu,
   X,
   User,
-  Database
+  Database,
+  Users
 } from 'lucide-react';
 
 const Sidebar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [user, setUser] = useState(null);
+  const [isMounted, setIsMounted] = useState(false);
   const pathname = usePathname();
 
   useEffect(() => {
+    setIsMounted(true);
     // Get user data from localStorage or API
     const userData = localStorage.getItem('user');
     if (userData) {
@@ -40,7 +43,7 @@ const Sidebar = () => {
     setIsOpen(!isOpen);
   };
 
-  const menuItems = [
+  const allMenuItems = [
     {
       name: 'Master Menu',
       href: '/dashboard',
@@ -52,6 +55,13 @@ const Sidebar = () => {
       href: '/master/items',
       icon: Database,
       description: 'Manage Products & Items'
+    },
+    {
+      name: 'User Management',
+      href: '/user-management',
+      icon: Users,
+      description: 'Manage System Users',
+      adminOnly: true // Only show for admin users
     },
     {
       name: 'Manufacturing Orders',
@@ -84,6 +94,15 @@ const Sidebar = () => {
       description: 'Inventory Tracking'
     }
   ];
+
+  // Filter menu items based on user role (only after component mounts to prevent hydration mismatch)
+  const menuItems = allMenuItems.filter(item => {
+    if (item.adminOnly) {
+      // During SSR or before mount, hide admin-only items to prevent hydration mismatch
+      return isMounted && user && user.role === 'ADMIN';
+    }
+    return true;
+  });
 
   return (
     <>
@@ -159,7 +178,7 @@ const Sidebar = () => {
         <div className="border-t border-gray-700 p-3">
           <div className="flex items-center space-x-3 p-2.5 mx-1 rounded-lg bg-gray-800">
             <div className="w-9 h-9 bg-white rounded-full flex items-center justify-center flex-shrink-0">
-              {user?.avatar ? (
+              {isMounted && user?.avatar ? (
                 <img 
                   src={user.avatar} 
                   alt="Profile" 
@@ -171,10 +190,10 @@ const Sidebar = () => {
             </div>
             <div className="flex-1 min-w-0">
               <div className="font-medium text-white text-sm truncate">
-                {user?.name || 'Loading...'}
+                {isMounted ? (user?.name || 'Loading...') : 'Loading...'}
               </div>
               <div className="text-xs text-gray-400 truncate">
-                {user?.email || 'Loading...'}
+                {isMounted ? (user?.email || 'Loading...') : 'Loading...'}
               </div>
             </div>
           </div>
