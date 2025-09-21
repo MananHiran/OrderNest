@@ -1,12 +1,14 @@
-'use client';
+'use client'
 
-import { useState, useEffect } from 'react';
-import { Package, Plus, Search, Filter, RefreshCw, TrendingUp, TrendingDown, ArrowUpDown } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { toast } from 'sonner';
+import { useState, useEffect } from 'react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Search, RefreshCw, Filter, TrendingUp, TrendingDown, Package, AlertTriangle, Plus } from 'lucide-react'
+import NewLedgerEntryModal from '@/components/NewLedgerEntryModal'
+import { toast } from 'sonner'
 
 interface StockLedgerEntry {
   ledger_id: string;
@@ -32,6 +34,7 @@ export default function StockLedgerPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredData, setFilteredData] = useState<StockLedgerEntry[]>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Fetch stock ledger data
   const fetchLedgerData = async () => {
@@ -52,6 +55,12 @@ export default function StockLedgerPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleModalSuccess = () => {
+    setIsModalOpen(false);
+    toast.success('Stock ledger entry added successfully');
+    fetchLedgerData(); // Refresh the data
   };
 
   useEffect(() => {
@@ -165,6 +174,10 @@ export default function StockLedgerPage() {
           <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
           Refresh
         </Button>
+        <Button onClick={() => setIsModalOpen(true)}>
+          <Plus className="w-4 h-4 mr-2" />
+          New Entry
+        </Button>
       </div>
 
       {/* Stock Ledger Table */}
@@ -255,6 +268,12 @@ export default function StockLedgerPage() {
           )}
         </CardContent>
       </Card>
+
+      <NewLedgerEntryModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSuccess={handleModalSuccess}
+      />
     </div>
   );
 }
