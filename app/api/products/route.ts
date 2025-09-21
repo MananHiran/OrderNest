@@ -53,3 +53,80 @@ export async function GET(request: NextRequest) {
     );
   }
 }
+
+// POST - Create a new product
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { product_name, type, unit_of_measure, current_stock, cost_per_unit } = body;
+
+    // Validation
+    if (!product_name || !product_name.trim()) {
+      return NextResponse.json(
+        { error: 'Product name is required' },
+        { status: 400 }
+      );
+    }
+
+    if (!type || !['RAW_MATERIAL', 'FINISHED_GOOD'].includes(type)) {
+      return NextResponse.json(
+        { error: 'Valid product type is required (RAW_MATERIAL or FINISHED_GOOD)' },
+        { status: 400 }
+      );
+    }
+
+    if (!unit_of_measure || !['PCS', 'KG', 'LTR', 'MT'].includes(unit_of_measure)) {
+      return NextResponse.json(
+        { error: 'Valid unit of measure is required (PCS, KG, LTR, or MT)' },
+        { status: 400 }
+      );
+    }
+
+    if (current_stock === undefined || current_stock === null || isNaN(parseFloat(current_stock)) || parseFloat(current_stock) < 0) {
+      return NextResponse.json(
+        { error: 'Valid current stock is required (must be a positive number)' },
+        { status: 400 }
+      );
+    }
+
+    if (cost_per_unit === undefined || cost_per_unit === null || isNaN(parseFloat(cost_per_unit)) || parseFloat(cost_per_unit) <= 0) {
+      return NextResponse.json(
+        { error: 'Valid cost per unit is required (must be a positive number)' },
+        { status: 400 }
+      );
+    }
+
+    // Check if product name already exists
+    const existingProduct = await prisma.product.findFirst({
+      where: {
+        product_name: product_name.trim()
+      }
+    });
+
+    if (existingProduct) {
+      return NextResponse.json(
+        { error: 'A product with this name already exists' },
+        { status: 409 }
+      );
+    }
+
+    // Create the product
+    const product = await prisma.product.create({
+      data: {
+        product_name: product_name.trim(),
+        type,
+        unit_of_measure,
+        current_stock: parseFloat(current_stock),
+        cost_per_unit: parseFloat(cost_per_unit)
+      }
+    });
+
+    return NextResponse.json(product, { status: 201 });
+  } catch (error) {
+    console.error('Error creating product:', error);
+    return NextResponse.json(
+      { error: 'Failed to create product' },
+      { status: 500 }
+    );
+  }
+}

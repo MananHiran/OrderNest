@@ -213,13 +213,15 @@ export default function RegisterPage() {
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange("password", e.target.value)}
                     className={`pl-10 pr-10 border-gray-300 focus:border-black focus:ring-black ${errors.password ? "border-red-500" : ""}`}
                   />
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="sm"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-black"
+                    className="absolute right-1 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-black h-8 w-8 p-0"
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
+                  </Button>
                 </div>
                 {errors.password && (
                   <motion.p
@@ -251,13 +253,15 @@ export default function RegisterPage() {
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange("confirmPassword", e.target.value)}
                     className={`pl-10 pr-10 border-gray-300 focus:border-black focus:ring-black ${errors.confirmPassword ? "border-red-500" : ""}`}
                   />
-                  <button
+                  <Button
                     type="button"
+                    variant="ghost"
+                    size="sm"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-black"
+                    className="absolute right-1 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-black h-8 w-8 p-0"
                   >
                     {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
+                  </Button>
                 </div>
                 {errors.confirmPassword && (
                   <motion.p
